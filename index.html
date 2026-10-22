@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Our Travel Book</title>
+  <meta name="description" content="Our Baguio memories and the adventures still to come.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fredoka:wght@400;500;700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="#top">Our Travel Book</a>
+    <nav aria-label="Main">
+      <a href="#memories">Memories</a>
+      <a href="#passport">Passport</a>
+      <a href="#next">Next trip</a>
+    </nav>
+    <button class="btn small" id="authBtn" type="button">Sign in</button>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="heroTitle">
+      <span class="deco d1" aria-hidden="true">🌲</span>
+      <span class="deco d2" aria-hidden="true">💗</span>
+      <span class="deco d3" aria-hidden="true">🌲</span>
+      <span class="deco d4" aria-hidden="true">✨</span>
+      <button class="plane" id="plane" aria-label="Make the plane fly again">✈️</button>
+      <h1 id="heroTitle"><span id="nameA">You</span> <span class="amp">&amp;</span> <span id="nameB">Me</span></h1>
+      <p class="hero-sub">Chapter one: Baguio 🌲 The rest of the map is waiting for us.</p>
+      <div class="counter" id="counter" aria-live="off"></div>
+      <div class="hero-actions">
+        <button class="btn primary edit-only" id="addBtn" type="button" hidden>+ Add a memory</button>
+        <button class="btn edit-only" id="settingsBtn" type="button" hidden>⚙️ Our details &amp; next trip</button>
+      </div>
+    </section>
+
+    <section class="section memories" id="memories" aria-labelledby="memTitle">
+      <div class="section-head">
+        <h2 id="memTitle">Memory wall</h2>
+        <div class="tools">
+          <button class="btn small" id="surpriseBtn" type="button">🎲 Surprise me</button>
+        </div>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Filter memories by place"></div>
+      <div class="wall" id="wall"></div>
+    </section>
+
+    <section class="section passport" id="passport" aria-labelledby="passTitle">
+      <h2 id="passTitle">Our passport</h2>
+      <p class="lead">Baguio is our first stamp. The faded ones are places we’re dreaming about.</p>
+      <div class="stamps" id="stamps"></div>
+      <form class="inline-form edit-only dream-form" id="dreamForm" hidden>
+        <input name="place" maxlength="40" placeholder="Add a dream place…" aria-label="Dream place" required>
+        <button class="btn small primary" type="submit">Add</button>
+      </form>
+    </section>
+
+    <section class="section next" id="next" aria-labelledby="nextTitle">
+      <h2 id="nextTitle">Next adventures</h2>
+      <div class="next-grid">
+        <div class="note-card yellow">
+          <h3>Next trip</h3>
+          <div id="countdown" class="countdown">Loading…</div>
+        </div>
+        <div class="note-card blue">
+          <h3>Bucket list</h3>
+          <p class="progress" id="progress"></p>
+          <ul class="bucket" id="bucket"></ul>
+          <form class="inline-form edit-only" id="bucketForm" hidden>
+            <input name="item" maxlength="80" placeholder="Add something to the list…" aria-label="New bucket list item" required>
+            <button class="btn small primary" type="submit">Add</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">Made with 💖 for the two of us.</footer>
+
+  <!-- Add / edit memory -->
+  <dialog id="memDialog" aria-labelledby="memDialogTitle">
+    <form id="memForm" method="dialog" novalidate>
+      <h3 id="memDialogTitle">New memory</h3>
+      <label>What happened?<input name="title" maxlength="50" required placeholder="Sunset on the boat"></label>
+      <label>Where?<input name="place" list="placeList" maxlength="40" required placeholder="Palawan"></label>
+      <datalist id="placeList"></datalist>
+      <label>When?<input type="date" name="date" required></label>
+      <fieldset><legend>How did it feel?</legend>
+        <div class="moods" id="moods"></div>
+      </fieldset>
+      <label>Our little story<textarea name="note" rows="4" maxlength="600" placeholder="What do you want to remember?"></textarea></label>
+      <label>Photo<input type="file" name="photo" accept="image/*"></label>
+      <img id="photoPreview" class="preview" alt="" hidden>
+      <label class="check" id="removePhotoRow" hidden><input type="checkbox" name="removePhoto"> Remove the photo</label>
+      <p class="form-error" id="memError" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit" id="memSave">Save memory</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Viewer -->
+  <dialog id="viewDialog" class="viewer" aria-label="Memory">
+    <figure class="polaroid big">
+      <div class="photo" id="vPhoto"></div>
+      <figcaption>
+        <strong id="vTitle"></strong>
+        <span id="vMeta"></span>
+        <p id="vNote"></p>
+      </figcaption>
+    </figure>
+    <div class="viewer-actions">
+      <button class="btn small" id="vPrev" type="button">‹ Prev</button>
+      <button class="btn small edit-only" id="vEdit" type="button" hidden>✏️ Edit</button>
+      <button class="btn small danger edit-only" id="vDelete" type="button" hidden>🗑 Delete</button>
+      <button class="btn small" id="vNext" type="button">Next ›</button>
+    </div>
+    <button class="x" data-close aria-label="Close" type="button">✕</button>
+  </dialog>
+
+  <!-- Our details + next trip -->
+  <dialog id="setDialog" aria-labelledby="setTitle">
+    <form id="setForm" method="dialog" novalidate>
+      <h3 id="setTitle">Our details</h3>
+      <label>Your name<input name="nameA" maxlength="30"></label>
+      <label>Partner name<input name="nameB" maxlength="30"></label>
+      <label>Together since<input type="date" name="since"></label>
+      <label>Next trip place<input name="nextPlace" maxlength="40" placeholder="Palawan"></label>
+      <label>Next trip date<input type="date" name="nextDate"></label>
+      <p class="form-error" id="setError" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit" id="setSave">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Sign in -->
+  <dialog id="loginDialog" aria-labelledby="loginTitle">
+    <form id="loginForm" method="dialog" novalidate>
+      <h3 id="loginTitle">Sign in to edit</h3>
+      <p class="hint">Type our password. Only the two of us can add or change things. Everyone else can just look.</p>
+      <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="form-error" id="loginError" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit" id="loginGo">Sign in</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
