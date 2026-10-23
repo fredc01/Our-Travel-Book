@@ -9,6 +9,7 @@ const DB = (() => {
     clear() { try { localStorage.removeItem(KEY); } catch {} }
   };
   const t = (v) => String(v ?? "").trim();
+  const splitPhotos = (p) => t(p).split("|").map((x) => x.trim()).filter(Boolean);   // several photos live in one cell, separated by |
   const photoPath = (p) => !t(p) ? null : /^(https?:|data:|images\/)/i.test(t(p)) ? t(p) : "images/" + t(p);
 
   async function read(res) {
@@ -44,9 +45,11 @@ const DB = (() => {
     return {
       settings: { a: t(d.settings.a) || "You", b: t(d.settings.b) || "Me", since: d.settings.since || "" },
       next: { place: t(d.next.place), date: d.next.date || "" },
-      memories: d.memories.map((r) => ({
-        id: r.id, title: r.title, place: r.place, date: r.date || "1970-01-01",
-        mood: r.mood || "🥰", note: r.story || "", photo: photoPath(r.photo), rawPhoto: r.photo || "" })),
+      memories: d.memories.map((r) => {
+        const raw = splitPhotos(r.photo);
+        return { id: r.id, title: r.title, place: r.place, date: r.date || "1970-01-01", mood: r.mood || "🥰", note: r.story || "",
+          photos: raw.map(photoPath), rawPhotos: raw };
+      }),
       bucket: d.bucket.map((r) => ({ id: r.id, text: r.item, done: !!r.done })),
       dreams: d.dreams.map((r) => ({ id: r.id, place: r.place }))
     };

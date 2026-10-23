@@ -52,7 +52,7 @@
       <h2 id="passTitle">Our passport</h2>
       <p class="lead">Baguio is our first stamp. The faded ones are places we’re dreaming about.</p>
       <div class="stamps" id="stamps"></div>
-      <form class="inline-form edit-only dream-form" id="dreamForm" hidden>
+      <form class="inline-form edit-only dream-form" id="dreamForm" hidden novalidate>
         <input name="place" maxlength="40" placeholder="Add a dream place…" aria-label="Dream place" required>
         <button class="btn small primary" type="submit">Add</button>
       </form>
@@ -69,8 +69,8 @@
           <h3>Bucket list</h3>
           <p class="progress" id="progress"></p>
           <ul class="bucket" id="bucket"></ul>
-          <form class="inline-form edit-only" id="bucketForm" hidden>
-            <input name="item" maxlength="80" placeholder="Add something to the list…" aria-label="New bucket list item" required>
+          <form class="inline-form edit-only" id="bucketForm" hidden novalidate>
+            <input name="bucketItem" maxlength="80" placeholder="Add something to the list…" aria-label="New bucket list item" required>
             <button class="btn small primary" type="submit">Add</button>
           </form>
         </div>
@@ -92,9 +92,13 @@
         <div class="moods" id="moods"></div>
       </fieldset>
       <label>Our little story<textarea name="note" rows="4" maxlength="600" placeholder="What do you want to remember?"></textarea></label>
-      <label>Photo<input type="file" name="photo" accept="image/*"></label>
-      <img id="photoPreview" class="preview" alt="" hidden>
-      <label class="check" id="removePhotoRow" hidden><input type="checkbox" name="removePhoto"> Remove the photo</label>
+      <div class="field" id="photoField">
+        <span class="field-label">Photos <small>(the first one is the cover)</small></span>
+        <div class="photo-grid" id="photoGrid"></div>
+        <input type="file" id="photoInput" class="sr" accept="image/*" multiple>
+        <label class="btn small add-photos" id="photoAdd" for="photoInput">📷 Add photos</label>
+        <small class="photo-hint" id="photoHint"></small>
+      </div>
       <p class="form-error" id="memError" role="alert"></p>
       <div class="dialog-actions">
         <button class="btn" type="button" data-close>Cancel</button>
@@ -107,6 +111,7 @@
   <dialog id="viewDialog" class="viewer" aria-label="Memory">
     <figure class="polaroid big">
       <div class="photo" id="vPhoto"></div>
+      <div class="thumbs" id="vThumbs" hidden></div>
       <figcaption>
         <strong id="vTitle"></strong>
         <span id="vMeta"></span>
@@ -153,9 +158,21 @@
     </form>
   </dialog>
 
+  <!-- Are you sure? -->
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <form method="dialog">
+      <h3 id="confirmTitle">Are you sure?</h3>
+      <p class="hint" id="confirmText"></p>
+      <div class="dialog-actions">
+        <button class="btn" type="button" data-close>Keep it</button>
+        <button class="btn danger" type="submit" value="ok" id="confirmOk">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="js/config.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/db.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/app.js"></script>

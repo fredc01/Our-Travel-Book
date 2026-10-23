@@ -3,9 +3,9 @@
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmtDate = (d) => d ? new Date(d + "T00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "";
   const today = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; };
-  const MOODS = ["🥰", "😆", "🌅", "🍜", "😴", "🤪"];
+  const MOODS = ["🥰", "😆", "🌅", "🍜", "😴", "🤪"], MAX_PHOTOS = 6;
 
-  let S = null, editing = false, placeFilter = "all", shown = [], viewIdx = 0, pendingPhoto = null, editMem = null;
+  let S = null, editing = false, placeFilter = "all", shown = [], viewIdx = 0, photoIdx = 0, editMem = null, photos = [];
   let toastTimer;
   function toast(msg) {
     const t = $("#toast"); t.textContent = msg; t.classList.add("show");
@@ -13,6 +13,31 @@
   }
   const sorted = () => [...S.memories].sort((a, b) => b.date.localeCompare(a.date));
   const msg = (err) => (err && err.message) || String(err);
+
+  /* ---------- Themed validation and confirm (no plain browser popups) ---------- */
+  function clearError(wrap, after) {
+    wrap.classList.remove("invalid");
+    const e = after ? wrap.nextElementSibling : wrap.querySelector(":scope > .field-error");
+    if (e && e.classList.contains("field-error")) e.remove();
+  }
+  function showError(wrap, message, after) {
+    clearError(wrap, after);
+    wrap.classList.add("invalid");
+    const p = document.createElement("p"); p.className = "field-error"; p.setAttribute("role", "alert"); p.textContent = message;
+    if (after) wrap.after(p); else wrap.appendChild(p);
+    wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake");
+  }
+  function clearAll(form) { form.querySelectorAll(".field-error").forEach(e => e.remove()); form.querySelectorAll(".invalid").forEach(w => w.classList.remove("invalid")); }
+  function clearOnInput(form) { form.addEventListener("input", (e) => { const w = e.target.closest("label, .field"); if (w) clearError(w); }); }
+  function askConfirm(title, text, okLabel = "Delete") {
+    return new Promise((resolve) => {
+      const d = $("#confirmDialog");
+      $("#confirmTitle").textContent = title; $("#confirmText").textContent = text; $("#confirmOk").textContent = okLabel;
+      d.returnValue = "";
+      d.addEventListener("close", () => resolve(d.returnValue === "ok"), { once: true });
+      d.showModal();
+    });
+  }
 
   /* ---------- Loading ---------- */
   async function start() {
@@ -44,10 +69,13 @@
   const ld = $("#loginDialog"), lf = $("#loginForm");
   $("#authBtn").addEventListener("click", async () => {
     if (editing) { await DB.signOut(); setEditing(false); toast("Signed out"); }
-    else { lf.reset(); $("#loginError").textContent = ""; ld.showModal(); }
+    else { lf.reset(); clearAll(lf); $("#loginError").textContent = ""; ld.showModal(); }
   });
+  clearOnInput(lf);
   lf.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const field = lf.elements.password.closest("label");
+    if (!lf.elements.password.value) { showError(field, "Type our password first."); lf.elements.password.focus(); return; }
     const btn = $("#loginGo"); btn.disabled = true;
     try {
       await DB.signIn(lf.elements.password.value);
@@ -87,7 +115,7 @@
     shown = sorted().filter(m => placeFilter === "all" || m.place === placeFilter);
     $("#wall").innerHTML = shown.length ? shown.map((m, i) => `
       <button type="button" class="polaroid" style="--r:${((i * 37) % 7 - 3)}deg" data-i="${i}" aria-label="Open memory: ${esc(m.title)}">
-        <span class="photo ${m.photo ? "" : "blank"}">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy">` : esc(m.mood)}</span>
+        <span class="photo ${m.photos[0] ? "" : "blank"}">${m.photos[0] ? `<img src="${esc(m.photos[0])}" alt="" loading="lazy">` : esc(m.mood)}${m.photos.length > 1 ? `<span class="count">📷 ${m.photos.length}</span>` : ""}</span>
         <span class="cap"><strong>${esc(m.title)}</strong><small>${esc(m.mood)} ${esc(m.place)} · ${fmtDate(m.date)}</small></span>
       </button>`).join("")
       : `<p class="empty">No memories yet. ${editing ? "Press “+ Add a memory” to pin the first one." : "Sign in to pin the first one."}</p>`;
@@ -102,49 +130,76 @@
 
   /* ---------- Viewer ---------- */
   const vd = $("#viewDialog");
-  function openView(i) {
-    viewIdx = (i + shown.length) % shown.length;
-    const m = shown[viewIdx];
-    $("#vPhoto").className = "photo" + (m.photo ? "" : " blank");
-    $("#vPhoto").innerHTML = m.photo ? `<img src="${esc(m.photo)}" alt="${esc(m.title)}">` : esc(m.mood);
+  function openView(i) { viewIdx = (i + shown.length) % shown.length; photoIdx = 0; paintView(); if (!vd.open) vd.showModal(); }
+  function paintView() {
+    const m = shown[viewIdx], ph = m.photos;
+    const box = $("#vPhoto");
+    box.className = "photo" + (ph.length ? "" : " blank") + (ph.length > 1 ? " multi" : "");
+    box.innerHTML = ph.length
+      ? `<img src="${esc(ph[photoIdx])}" alt="${esc(m.title)}, photo ${photoIdx + 1} of ${ph.length}">${ph.length > 1 ? `<span class="count">${photoIdx + 1} / ${ph.length}</span>` : ""}`
+      : esc(m.mood);
+    const th = $("#vThumbs"); th.hidden = ph.length < 2;
+    th.innerHTML = ph.length > 1 ? ph.map((u, k) => `<button type="button" class="thumb" data-k="${k}" aria-label="Show photo ${k + 1}" aria-current="${k === photoIdx}"><img src="${esc(u)}" alt=""></button>`).join("") : "";
     $("#vTitle").textContent = m.title;
     $("#vMeta").textContent = `${m.mood} ${m.place} · ${fmtDate(m.date)}`;
     $("#vNote").textContent = m.note || "";
-    if (!vd.open) vd.showModal();
   }
+  $("#vPhoto").addEventListener("click", () => { const n = shown[viewIdx].photos.length; if (n > 1) { photoIdx = (photoIdx + 1) % n; paintView(); } });
+  $("#vThumbs").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) { photoIdx = +b.dataset.k; paintView(); } });
   $("#vPrev").onclick = () => openView(viewIdx - 1);
   $("#vNext").onclick = () => openView(viewIdx + 1);
   vd.addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") openView(viewIdx - 1); if (e.key === "ArrowRight") openView(viewIdx + 1); });
   $("#vEdit").onclick = () => { const m = shown[viewIdx]; vd.close(); openMemory(m); };
   $("#vDelete").onclick = async () => {
     const m = shown[viewIdx];
-    if (!confirm(`Delete “${m.title}”? This can’t be undone.`)) return;
+    if (!(await askConfirm("Delete this memory?", `“${m.title}” and its photos will be removed. This can’t be undone.`))) return;
     try {
-      await DB.deleteMemory(m.id); DB.removePhoto(m.rawPhoto);
+      await DB.deleteMemory(m.id); m.rawPhotos.forEach(u => DB.removePhoto(u));
       vd.close(); await reload(); toast("Memory deleted");
     } catch (err) { toast("Couldn’t delete: " + msg(err)); }
   };
 
   /* ---------- Add / edit memory ---------- */
-  const md = $("#memDialog"), mf = $("#memForm"), prev = $("#photoPreview");
+  const md = $("#memDialog"), mf = $("#memForm"), pin = $("#photoInput"), grid = $("#photoGrid"), pwrap = $("#photoField");
   $("#moods").innerHTML = MOODS.map((m, i) =>
     `<label class="mood"><input type="radio" name="mood" value="${m}" ${i === 0 ? "checked" : ""}><span>${m}</span></label>`).join("");
+  clearOnInput(mf);
+  function paintPhotos() {
+    grid.innerHTML = photos.map((p, i) => `<div class="pthumb"><img src="${esc(p.src)}" alt="Photo ${i + 1}">
+      <button type="button" class="p-x" data-rm="${i}" aria-label="Remove photo ${i + 1}">✕</button>
+      ${i === 0 ? `<span class="badge">Cover</span>` : `<button type="button" class="p-cover" data-cover="${i}" aria-label="Make photo ${i + 1} the cover">★</button>`}</div>`).join("");
+    $("#photoHint").textContent = `${photos.length} of ${MAX_PHOTOS} photos`;
+    $("#photoAdd").hidden = photos.length >= MAX_PHOTOS;
+  }
+  grid.addEventListener("click", (e) => {
+    const rm = e.target.closest("[data-rm]"), cv = e.target.closest("[data-cover]");
+    if (rm) photos.splice(+rm.dataset.rm, 1);
+    else if (cv) photos.unshift(photos.splice(+cv.dataset.cover, 1)[0]);
+    else return;
+    paintPhotos();
+  });
   function openMemory(m) {
     const el = mf.elements;
-    mf.reset(); pendingPhoto = null; editMem = m || null; $("#memError").textContent = "";
+    mf.reset(); clearAll(mf); editMem = m || null; $("#memError").textContent = "";
     $("#memDialogTitle").textContent = m ? "Edit memory" : "New memory";
     el.title.value = m ? m.title : ""; el.place.value = m ? m.place : ""; el.date.value = m ? m.date : today(); el.note.value = m ? m.note : "";
     const mood = m && MOODS.includes(m.mood) ? m.mood : MOODS[0];
     mf.querySelectorAll('input[name="mood"]').forEach(r => { r.checked = r.value === mood; });
-    prev.hidden = !(m && m.photo); if (m && m.photo) prev.src = m.photo;
-    $("#removePhotoRow").hidden = !(m && m.photo);
+    photos = m ? m.rawPhotos.map((raw, i) => ({ raw, src: m.photos[i] })) : [];
+    paintPhotos();
     md.showModal();
   }
   $("#addBtn").onclick = () => openMemory(null);
-  mf.elements.photo.addEventListener("change", async () => {
-    const f = mf.elements.photo.files[0]; if (!f) return;
-    try { pendingPhoto = await shrink(f); prev.src = pendingPhoto; prev.hidden = false; mf.elements.removePhoto.checked = false; }
-    catch { $("#memError").textContent = "That file couldn’t be read as an image. Try a JPG or PNG."; }
+  pin.addEventListener("change", async () => {
+    const files = [...pin.files]; pin.value = "";
+    if (!files.length) return;
+    clearError(pwrap);
+    const use = files.slice(0, MAX_PHOTOS - photos.length), skipped = files.length - use.length;
+    let bad = 0;
+    for (const f of use) { try { const d = await shrink(f); photos.push({ data: d, src: d }); } catch { bad++; } }
+    paintPhotos();
+    if (bad) showError(pwrap, "One of those files couldn’t be read as an image. Try a JPG or PNG.");
+    else if (skipped) showError(pwrap, `Only ${MAX_PHOTOS} photos fit in one memory, so a few were left out.`);
   });
   function shrink(file, max = 1400) {
     return new Promise((res, rej) => {
@@ -158,25 +213,46 @@
       img.onerror = rej; img.src = url;
     });
   }
+  // Every field is required. Each missing one gets a themed message under it.
+  function validateMemory(v) {
+    const el = mf.elements; let first = null;
+    const check = (ok, wrap, msg) => { if (ok) clearError(wrap); else { showError(wrap, msg); first = first || wrap; } };
+    check(!!v.title, el.title.closest("label"), "What should we call this memory?");
+    check(!!v.place, el.place.closest("label"), "Where did this happen?");
+    check(!!v.date, el.date.closest("label"), "Pick the date.");
+    check(!!v.story, el.note.closest("label"), "Write a little story so we remember it.");
+    check(photos.length > 0, pwrap, "Add at least one photo.");
+    if (first) { const c = first.querySelector("input:not([type=file]), textarea") || pin; c.focus(); }
+    return !first;
+  }
   mf.addEventListener("submit", async (e) => {
     e.preventDefault();
     const el = mf.elements;
     const v = { title: el.title.value.trim(), place: el.place.value.trim(), date: el.date.value,
       mood: (mf.querySelector('input[name="mood"]:checked') || {}).value || MOODS[0], story: el.note.value.trim() };
-    if (!v.title || !v.place || !v.date) { $("#memError").textContent = "Add a title, a place and a date."; return; }
-    const btn = $("#memSave"); btn.disabled = true; btn.textContent = "Saving…";
+    if (!validateMemory(v)) return;
+    const btn = $("#memSave"); btn.disabled = true;
+    const oldRaw = editMem ? editMem.rawPhotos : [], kept = [], uploaded = [];
+    const total = photos.filter(p => p.data).length; let n = 0;
     try {
-      const old = editMem ? editMem.rawPhoto : "";
-      let photo = old;
-      if (pendingPhoto) photo = await DB.uploadPhoto(pendingPhoto);
-      else if (el.removePhoto.checked) photo = "";
-      await DB.saveMemory({ id: editMem ? editMem.id : undefined, ...v, photo });
-      if (old && old !== photo) DB.removePhoto(old);
-      const wasNew = !editMem;
-      md.close(); await reload();
-      if (wasNew) FX.confetti(); toast(wasNew ? "Memory pinned 💖" : "Memory updated");
-    } catch (err) { $("#memError").textContent = "Couldn’t save: " + msg(err); }
-    finally { btn.disabled = false; btn.textContent = "Save memory"; }
+      for (const p of photos) {
+        if (p.data) { n++; btn.textContent = `Uploading photo ${n} of ${total}…`; const url = await DB.uploadPhoto(p.data); uploaded.push(url); kept.push(url); }
+        else kept.push(p.raw);
+      }
+      btn.textContent = "Saving…";
+      await DB.saveMemory({ id: editMem ? editMem.id : undefined, ...v, photo: kept.join("|") });
+    } catch (err) {
+      uploaded.forEach(u => DB.removePhoto(u));          // don't leave half-uploaded photos behind
+      $("#memError").textContent = "Couldn’t save: " + msg(err);
+      btn.disabled = false; btn.textContent = "Save memory"; return;
+    }
+    btn.disabled = false; btn.textContent = "Save memory";
+    oldRaw.filter(u => !kept.includes(u)).forEach(u => DB.removePhoto(u));
+    const wasNew = !editMem;
+    md.close();
+    try { await reload(); } catch (err) { console.error(err); }
+    if (wasNew) FX.confetti();
+    toast(wasNew ? "Memory pinned 💖" : "Memory updated");
   });
 
   /* ---------- Our details + next trip ---------- */
@@ -217,9 +293,12 @@
     try { await DB.deleteDream(b.dataset.dream); S.dreams = S.dreams.filter(d => d.id !== b.dataset.dream); renderStamps(); }
     catch (err) { toast("Couldn’t remove: " + msg(err)); }
   });
+  $("#dreamForm").addEventListener("input", (e) => clearError(e.currentTarget, true));
   $("#dreamForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const f = e.currentTarget, place = f.elements.place.value.trim(); if (!place) return;
+    const f = e.currentTarget, place = f.elements.place.value.trim();
+    if (!place) { showError(f, "Type a place we dream of first.", true); f.elements.place.focus(); return; }
+    clearError(f, true);
     try { const row = await DB.addDream(place); S.dreams.push({ id: row.id, place: row.place }); f.reset(); renderStamps(); }
     catch (err) { toast("Couldn’t add: " + msg(err)); }
   });
@@ -251,9 +330,12 @@
     try { await DB.deleteBucket(b.dataset.rm); S.bucket = S.bucket.filter(x => x.id !== b.dataset.rm); renderBucket(); }
     catch (err) { toast("Couldn’t remove: " + msg(err)); }
   });
+  $("#bucketForm").addEventListener("input", (e) => clearError(e.currentTarget, true));
   $("#bucketForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const f = e.currentTarget, item = f.elements.item.value.trim(); if (!item) return;
+    const f = e.currentTarget, item = f.elements.bucketItem.value.trim();
+    if (!item) { showError(f, "Type something we want to do first.", true); f.elements.bucketItem.focus(); return; }
+    clearError(f, true);
     try { const row = await DB.addBucket(item); S.bucket.push({ id: row.id, text: row.item, done: !!row.done }); f.reset(); renderBucket(); }
     catch (err) { toast("Couldn’t add: " + msg(err)); }
   });

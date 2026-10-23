@@ -5,7 +5,7 @@ A scrapbook website for our trips. Everything is added and edited **on the websi
 ## How we use it
 1. Open the site and press **Sign in** (top right). Type our password.
 2. Now you can:
-   - **+ Add a memory**: title, place, date, mood, story and a photo (uploaded for you).
+   - **+ Add a memory**: title, place, date, mood, story and up to 6 photos. Every field is required. The first photo is the cover; tap ★ on another one to make it the cover.
    - Open any memory to **Edit** or **Delete** it.
    - **⚙️ Our details & next trip**: names, "together since" date, next trip place and date.
    - Tick, add or remove **bucket list** items, and add or remove **dream places** (faded stamps).
@@ -67,7 +67,7 @@ When asked to sign in, use your GitHub username and a **personal access token** 
 - **Password**: it is one shared password with no lockout, so pick a long one that isn't used anywhere else.
 - **Speed**: saving can take a second or two, because Google's scripts are not instant.
 - **You can still peek at the sheet**, but leave the **ID** column alone and avoid renaming the tabs or header rows.
-- Photos are stored in your Google Drive folder "Our Travel Book photos". Deleting a memory on the website moves its photo to the Drive trash.
+- Photos are stored in your Google Drive folder "Our Travel Book photos". A memory with several photos keeps them all in one cell of the Photo column, separated by `|`. Deleting a memory (or removing a photo from it) moves the photo to the Drive trash.
 - Preview on your computer: run `python -m http.server` in this folder and open http://localhost:8000.
 
 ## Folders

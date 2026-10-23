@@ -112,7 +112,6 @@ fieldset { border: 0; margin: 0; padding: 0; } legend { font: 500 .95rem var(--h
 .mood input:checked + span { border-color: var(--rose); transform: scale(1.12); background: #fff; }
 .mood input:focus-visible + span { outline: 3px solid var(--rose); outline-offset: 2px; }
 .preview { width: 8rem; border-radius: .5rem; }
-.form-error { margin: 0; min-height: 1.4em; color: #b3261e; font-weight: 700; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; }
 .viewer { width: min(94vw, 34rem); background: var(--butter); }
 .polaroid.big { display: block; margin: 0 0 1rem; padding: 1rem 1rem .5rem; background: #fff; transform: rotate(-1deg); box-shadow: 0 6px 0 rgba(58,35,66,.15); }
@@ -147,3 +146,36 @@ fieldset { border: 0; margin: 0; padding: 0; } legend { font: 500 .95rem var(--h
 .check { flex-direction: row; align-items: center; gap: .5rem; font-weight: 400; }
 .btn:disabled { opacity: .6; cursor: progress; }
 .hero-actions .btn { margin: 0; }
+
+/* themed validation messages */
+.field-error, .form-error { position: relative; width: fit-content; max-width: 100%; margin: .5rem 0 0; padding: .35rem .85rem; border: 2px solid var(--rose); border-radius: .9rem; background: #fff; color: #b3264d; font: 500 .9rem/1.3 var(--head); }
+.field-error::before { content: ""; position: absolute; left: 1.1rem; top: -.5rem; width: .7rem; height: .7rem; background: #fff; border-left: 2px solid var(--rose); border-top: 2px solid var(--rose); transform: rotate(45deg); }
+.form-error { margin: 0; } .form-error:empty { display: none; }
+.invalid input:not([type=radio], [type=checkbox], [type=file]), .invalid textarea { border-color: var(--rose); box-shadow: 0 0 0 3px var(--blush); }
+.shake { animation: shake .35s; }
+@keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+
+/* photo picker in the memory form */
+.field { display: flex; flex-direction: column; gap: .25rem; }
+.field-label { font: 500 .95rem var(--head); } .field-label small, .photo-hint { color: var(--muted); font: 400 .85rem var(--body); }
+.photo-grid { display: flex; flex-wrap: wrap; gap: .6rem; margin: .25rem 0 .5rem; }
+.photo-grid:empty { min-height: 3.4rem; border: 2px dashed #b9a6c2; border-radius: .7rem; display: grid; place-items: center; }
+.photo-grid:empty::before { content: "No photos yet"; color: var(--muted); font-size: .9rem; }
+.invalid .photo-grid:empty { border-color: var(--rose); }
+.pthumb { position: relative; width: 5.2rem; height: 5.2rem; border: 2px solid var(--plum); border-radius: .6rem; overflow: hidden; background: var(--blush); }
+.pthumb img { width: 100%; height: 100%; object-fit: cover; }
+.pthumb button { position: absolute; width: 1.5rem; height: 1.5rem; padding: 0; border: 2px solid var(--plum); border-radius: 50%; background: #fff; font-size: .7rem; line-height: 1; }
+.p-x { top: .2rem; right: .2rem; } .p-cover { bottom: .2rem; left: .2rem; }
+.pthumb .badge { position: absolute; inset: auto 0 0 0; background: var(--rose); color: #fff; font: 500 .7rem var(--head); text-align: center; }
+.add-photos { width: fit-content; }
+#photoInput:focus-visible + label { outline: 3px solid var(--rose); outline-offset: 3px; }
+
+/* several photos in one memory */
+.photo { position: relative; }
+.count { position: absolute; right: .4rem; bottom: .4rem; padding: .1rem .55rem; border-radius: 999px; background: rgba(58,35,66,.88); color: #fff; font: 500 .8rem var(--head); }
+.polaroid.big .count { color: #fff; }
+.photo.multi { cursor: pointer; }
+.thumbs { display: flex; gap: .4rem; margin-top: .5rem; overflow-x: auto; padding: .2rem; }
+.thumb { flex: none; width: 3.4rem; height: 3.4rem; padding: 0; border: 2px solid transparent; border-radius: .4rem; overflow: hidden; background: none; opacity: .7; }
+.thumb[aria-current="true"] { border-color: var(--rose); opacity: 1; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
